@@ -17,6 +17,8 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow-x: hidden;
             cursor: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* Custom Cursor */
@@ -43,35 +45,67 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: #000;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
             z-index: 1000;
             transition: opacity 1s ease;
         }
 
         .landing h1 {
-            font-size: 4rem;
-            font-weight: 300;
-            letter-spacing: 0.1em;
-            margin-bottom: 3rem;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 100;
+            letter-spacing: 0.3em;
+            margin-bottom: 4rem;
             text-transform: uppercase;
+            background: linear-gradient(90deg, #fff 0%, #f0f0f0 50%, #fff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% auto;
+            animation: shimmer 3s linear infinite;
+            text-shadow: 0 0 40px rgba(255,255,255,0.1);
+        }
+
+        @keyframes shimmer {
+            to {
+                background-position: 200% center;
+            }
         }
 
         .enter-btn {
             background: none;
-            border: 1px solid #fff;
-            color: #fff;
-            padding: 1rem 3rem;
-            font-size: 1.2rem;
-            letter-spacing: 0.2em;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.9);
+            padding: 1.2rem 3.5rem;
+            font-size: 1rem;
+            letter-spacing: 0.3em;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
             text-transform: uppercase;
+            font-weight: 300;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: left 0.4s ease;
         }
 
         .enter-btn:hover {
-            background: #fff;
-            color: #000;
-            box-shadow: 0 0 30px rgba(255,255,255,0.5);
+            border-color: rgba(255,255,255,0.8);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255,255,255,0.1);
+        }
+
+        .enter-btn:hover::before {
+            left: 0;
         }
 
         /* Main Content */
@@ -360,14 +394,35 @@
         }
         createParticles();
 
+        // Video Data - Add your videos here with their orientations
+        // Videos with canBeHero: true will randomly be either hero or their default type
+        const videos = [
+            { src: 'aura.mp4', type: 'portrait' },
+            { src: 'start.mp4', type: 'portrait' },
+            { src: 'art.mp4', type: 'landscape', canBeHero: true },
+            { src: 'aura2.mp4', type: 'landscape', canBeHero: true },
+            { src: 'guy.mp4', type: 'portrait' },
+            { src: 'art2.mp4', type: 'landscape', canBeHero: true },
+            { src: 'donk.mp4', type: 'portrait' },
+            { src: 'art3.mp4', type: 'portrait' },
+            { src: 'aura3.mp4', type: 'portrait' }
+        ];
+
+        // Background audio element
+        let backgroundAudio = null;
+        let currentPlayingVideo = null;
+
         // Enter Button
         const enterBtn = document.getElementById('enterBtn');
         const landing = document.getElementById('landing');
         const mainContent = document.getElementById('mainContent');
         
         enterBtn.addEventListener('click', () => {
-            // This is where you would trigger your background music
-            // audioElement.play();
+            // Create background audio from the fifth video (guy.mp4)
+            backgroundAudio = new Audio(videos[4].src);
+            backgroundAudio.loop = true;
+            backgroundAudio.volume = 0.7;
+            backgroundAudio.play();
             
             landing.style.opacity = '0';
             setTimeout(() => {
@@ -377,29 +432,25 @@
             }, 1000);
         });
 
-        // Video Data - Add your videos here with their orientations
-        // Each video object has a source URL and type (landscape, portrait, or hero)
-        const videos = [
-            { src: 'aura.mp4', type: 'portrait' },
-            { src: 'start.mp4', type: 'portrait' },
-            { src: 'art.mp4', type: 'landscape' },
-            { src: 'aura2.mp4', type: 'hero' },      // hero = large spanning video
-            { src: 'guy.mp4', type: 'portrait' },
-            { src: 'art2.mp4', type: 'landscape' },
-            { src: 'donk.mp4', type: 'portrait' },
-            { src: 'art3.mp4', type: 'portrait' },
-            { src: 'aura3.mp4', type: 'portrait' }
-        ];
-
         // Create Video Grid
         function createVideoGrid() {
             const grid = document.getElementById('videoGrid');
+            let heroCount = 0;
+            const maxHeroes = 3;
             
             // Create initial set of videos (3 times the videos array for variety)
             for (let i = 0; i < videos.length * 3; i++) {
-                const videoData = videos[i % videos.length];
+                const videoData = {...videos[i % videos.length]};
                 const container = document.createElement('div');
-                container.className = `video-container ${videoData.type}`;
+                
+                // Determine if this video should be hero
+                let finalType = videoData.type;
+                if (videoData.canBeHero && heroCount < maxHeroes && Math.random() > 0.7) {
+                    finalType = 'hero';
+                    heroCount++;
+                }
+                
+                container.className = `video-container ${finalType}`;
                 
                 const video = document.createElement('video');
                 video.src = videoData.src;
@@ -445,9 +496,25 @@
             const videoContainer = e.target.closest('.video-container');
             if (videoContainer) {
                 const video = videoContainer.querySelector('video');
+                
+                // Handle audio switching
+                if (backgroundAudio) {
+                    backgroundAudio.pause();
+                }
+                
+                // If there's a currently playing video, mute it
+                if (currentPlayingVideo && currentPlayingVideo !== video) {
+                    currentPlayingVideo.muted = true;
+                }
+                
+                // Set up fullscreen
                 fullscreenVideo.src = video.src;
                 fullscreenOverlay.style.display = 'flex';
+                fullscreenVideo.muted = false; // Unmute the fullscreen video
                 fullscreenVideo.play();
+                
+                // Update current playing video
+                currentPlayingVideo = fullscreenVideo;
                 
                 // Keep background videos playing but dimmed
                 document.querySelectorAll('.video-container').forEach(container => {
@@ -460,11 +527,19 @@
             if (e.target === fullscreenOverlay) {
                 fullscreenOverlay.style.display = 'none';
                 fullscreenVideo.pause();
+                fullscreenVideo.muted = true;
+                
+                // Resume background audio
+                if (backgroundAudio) {
+                    backgroundAudio.play();
+                }
                 
                 // Restore background videos
                 document.querySelectorAll('.video-container').forEach(container => {
                     container.style.opacity = '1';
                 });
+                
+                currentPlayingVideo = null;
             }
         });
 
@@ -531,9 +606,16 @@
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
                 // Add more videos randomly from the videos array
                 for (let i = 0; i < 10; i++) {
-                    const videoData = videos[Math.floor(Math.random() * videos.length)];
+                    const videoData = {...videos[Math.floor(Math.random() * videos.length)]};
                     const container = document.createElement('div');
-                    container.className = `video-container ${videoData.type}`;
+                    
+                    // Determine if this video should be hero (20% chance if canBeHero is true)
+                    let finalType = videoData.type;
+                    if (videoData.canBeHero && Math.random() > 0.8) {
+                        finalType = 'hero';
+                    }
+                    
+                    container.className = `video-container ${finalType}`;
                     
                     const video = document.createElement('video');
                     video.src = videoData.src;
