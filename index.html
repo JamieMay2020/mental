@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Nourishment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: screen;
+            transition: transform 0.1s ease;
+        }
+
+        /* Landing Page */
+        .landing {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+
+        .landing h1 {
+            font-size: 4rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+        }
+
+        .enter-btn {
+            background: none;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .enter-btn:hover {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 30px rgba(255,255,255,0.5);
+        }
+
+        /* Main Content */
+        .main-content {
+            opacity: 0;
+            transition: opacity 1s ease;
+            min-height: 100vh;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* X.com Link */
+        .x-link {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .x-link:hover {
+            opacity: 0.7;
+        }
+
+        /* Video Grid */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding-top: 4rem;
+        }
+
+        .video-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: translateY(30px);
+            cursor: pointer;
+        }
+
+        .video-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .video-container.landscape {
+            aspect-ratio: 16/9;
+        }
+
+        .video-container.portrait {
+            aspect-ratio: 9/16;
+            grid-row: span 2;
+        }
+
+        .video-container.hero {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .video-container:hover video {
+            transform: scale(1.05);
+        }
+
+        .video-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(255,255,255,0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-container:hover::before {
+            opacity: 1;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        /* Light Bleed Effect */
+        .video-container::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            background: radial-gradient(circle at center, var(--glow-color, rgba(255,255,255,0.1)) 0%, transparent 70%);
+            opacity: 0.3;
+            filter: blur(40px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Fullscreen Video */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            cursor: pointer;
+        }
+
+        .fullscreen-video {
+            max-width: 90%;
+            max-height: 90%;
+            box-shadow: 0 0 100px rgba(255,255,255,0.2);
+        }
+
+        /* Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Chromatic Aberration */
+        .glitch {
+            animation: glitch 10s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { 
+                text-shadow: 0 0 0 transparent;
+                filter: none;
+            }
+            97% {
+                text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
+                filter: blur(0);
+            }
+            98% {
+                text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
+                filter: blur(1px);
+            }
+            99% {
+                text-shadow: 0 0 0 transparent;
+                filter: none;
+            }
+        }
+
+        /* Visual Burst */
+        .burst {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            pointer-events: none;
+            animation: burst 0.5s ease-out forwards;
+        }
+
+        @keyframes burst {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Elastic Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            transition: transform 0.2s ease-out;
+        }
+
+        body.bounce-top {
+            transform: translateY(10px);
+        }
+
+        body.bounce-bottom {
+            transform: translateY(-10px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+
+    <!-- Particles -->
+    <div class="particles"></div>
+
+    <!-- Landing Page -->
+    <div class="landing" id="landing">
+        <h1 class="glitch">Mental Nourishment</h1>
+        <button class="enter-btn" id="enterBtn">Enter</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <a href="https://x.com" class="x-link" target="_blank">x.com</a>
+        
+        <div class="video-grid" id="videoGrid">
+            <!-- Videos will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Fullscreen Overlay -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <video class="fullscreen-video" id="fullscreenVideo" controls autoplay loop></video>
+    </div>
+
+    <script>
+        // Custom Cursor
+        const cursor = document.querySelector('.cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX - 10 + 'px';
+            cursor.style.top = e.clientY - 10 + 'px';
+        });
+
+        // Particles
+        function createParticles() {
+            const particlesContainer = document.querySelector('.particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Enter Button
+        const enterBtn = document.getElementById('enterBtn');
+        const landing = document.getElementById('landing');
+        const mainContent = document.getElementById('mainContent');
+        
+        enterBtn.addEventListener('click', () => {
+            // This is where you would trigger your background music
+            // audioElement.play();
+            
+            landing.style.opacity = '0';
+            setTimeout(() => {
+                landing.style.display = 'none';
+                mainContent.style.opacity = '1';
+                observeVideos();
+            }, 1000);
+        });
+
+        // Video Data - Add your videos here with their orientations
+        // Each video object has a source URL and type (landscape, portrait, or hero)
+        const videos = [
+            { src: 'aura.mp4', type: 'portrait' },
+            { src: 'start.mp4', type: 'portrait' },
+            { src: 'art.mp4', type: 'landscape' },
+            { src: 'aura2.mp4', type: 'hero' },      // hero = large spanning video
+            { src: 'guy.mp4', type: 'portrait' },
+            { src: 'art2.mp4', type: 'landscape' },
+            { src: 'donk.mp4', type: 'portrait' },
+            { src: 'art3.mp4', type: 'portrait' },
+            { src: 'aura3.mp4', type: 'portrait' }
+        ];
+
+        // Create Video Grid
+        function createVideoGrid() {
+            const grid = document.getElementById('videoGrid');
+            
+            // Create initial set of videos (3 times the videos array for variety)
+            for (let i = 0; i < videos.length * 3; i++) {
+                const videoData = videos[i % videos.length];
+                const container = document.createElement('div');
+                container.className = `video-container ${videoData.type}`;
+                
+                const video = document.createElement('video');
+                video.src = videoData.src;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                
+                // Set random glow color
+                const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#80ff00'];
+                container.style.setProperty('--glow-color', colors[Math.floor(Math.random() * colors.length)] + '40');
+                
+                container.appendChild(video);
+                grid.appendChild(container);
+                
+                // Parallax depth
+                container.dataset.depth = Math.random() * 0.5 + 0.5;
+            }
+        }
+        createVideoGrid();
+
+        // Intersection Observer for fade-in and video play
+        function observeVideos() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        const video = entry.target.querySelector('video');
+                        if (video) video.play();
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.video-container').forEach(container => {
+                observer.observe(container);
+            });
+        }
+
+        // Fullscreen Video
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const fullscreenVideo = document.getElementById('fullscreenVideo');
+
+        document.addEventListener('click', (e) => {
+            const videoContainer = e.target.closest('.video-container');
+            if (videoContainer) {
+                const video = videoContainer.querySelector('video');
+                fullscreenVideo.src = video.src;
+                fullscreenOverlay.style.display = 'flex';
+                fullscreenVideo.play();
+                
+                // Keep background videos playing but dimmed
+                document.querySelectorAll('.video-container').forEach(container => {
+                    container.style.opacity = '0.2';
+                });
+            }
+        });
+
+        fullscreenOverlay.addEventListener('click', (e) => {
+            if (e.target === fullscreenOverlay) {
+                fullscreenOverlay.style.display = 'none';
+                fullscreenVideo.pause();
+                
+                // Restore background videos
+                document.querySelectorAll('.video-container').forEach(container => {
+                    container.style.opacity = '1';
+                });
+            }
+        });
+
+        // Double-click burst effect
+        document.addEventListener('dblclick', (e) => {
+            if (e.target.tagName !== 'VIDEO') {
+                const burst = document.createElement('div');
+                burst.className = 'burst';
+                burst.style.left = e.clientX - 50 + 'px';
+                burst.style.top = e.clientY - 50 + 'px';
+                document.body.appendChild(burst);
+                
+                setTimeout(() => burst.remove(), 500);
+            }
+        });
+
+        // Parallax Scroll Effect
+        let scrollY = 0;
+        let scrollSpeed = 0;
+        let lastScrollY = 0;
+        let scrollTimeout;
+
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            scrollSpeed = Math.abs(scrollY - lastScrollY);
+            
+            // Parallax effect
+            document.querySelectorAll('.video-container').forEach(container => {
+                const depth = parseFloat(container.dataset.depth);
+                const movement = scrollY * depth * 0.1;
+                container.style.transform = `translateY(${movement}px)`;
+            });
+            
+            // Adjust video playback speed based on scroll speed
+            const playbackRate = 1 + (scrollSpeed * 0.01);
+            document.querySelectorAll('video').forEach(video => {
+                video.playbackRate = Math.min(playbackRate, 2);
+            });
+            
+            // Reset playback rate after scrolling stops
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                document.querySelectorAll('video').forEach(video => {
+                    video.playbackRate = 1;
+                });
+            }, 150);
+            
+            lastScrollY = scrollY;
+            
+            // Elastic bounce effect
+            if (scrollY <= 0) {
+                document.body.classList.add('bounce-top');
+                setTimeout(() => document.body.classList.remove('bounce-top'), 200);
+            }
+            
+            if (scrollY + window.innerHeight >= document.body.scrollHeight) {
+                document.body.classList.add('bounce-bottom');
+                setTimeout(() => document.body.classList.remove('bounce-bottom'), 200);
+            }
+        });
+
+        // Infinite Scroll
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+                // Add more videos randomly from the videos array
+                for (let i = 0; i < 10; i++) {
+                    const videoData = videos[Math.floor(Math.random() * videos.length)];
+                    const container = document.createElement('div');
+                    container.className = `video-container ${videoData.type}`;
+                    
+                    const video = document.createElement('video');
+                    video.src = videoData.src;
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    
+                    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#80ff00'];
+                    container.style.setProperty('--glow-color', colors[Math.floor(Math.random() * colors.length)] + '40');
+                    
+                    container.dataset.depth = Math.random() * 0.5 + 0.5;
+                    
+                    container.appendChild(video);
+                    document.getElementById('videoGrid').appendChild(container);
+                    
+                    // Observe new video
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                                const video = entry.target.querySelector('video');
+                                if (video) video.play();
+                            }
+                        });
+                    }, { threshold: 0.1 });
+                    
+                    observer.observe(container);
+                }
+            }
+        });
+
+        // Subtle chromatic aberration on random elements
+        setInterval(() => {
+            const containers = document.querySelectorAll('.video-container');
+            const randomContainer = containers[Math.floor(Math.random() * containers.length)];
+            if (randomContainer) {
+                randomContainer.style.filter = 'blur(0.5px)';
+                randomContainer.style.transform += ' translateX(2px)';
+                
+                setTimeout(() => {
+                    randomContainer.style.filter = 'none';
+                    randomContainer.style.transform = randomContainer.style.transform.replace(' translateX(2px)', '');
+                }, 100);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
