@@ -137,11 +137,12 @@
         /* Video Grid */
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem;
             max-width: 1600px;
             margin: 0 auto;
             padding-top: 4rem;
+            grid-auto-flow: dense;
         }
 
         .video-container {
@@ -171,6 +172,14 @@
         .video-container.hero {
             grid-column: span 2;
             grid-row: span 2;
+            aspect-ratio: 16/9;
+        }
+
+        @media (max-width: 768px) {
+            .video-container.hero {
+                grid-column: span 1;
+                grid-row: span 1;
+            }
         }
 
         .video-container video {
@@ -396,21 +405,24 @@
 
         // Video Data - Add your videos here with their orientations
         // Videos with canBeHero: true will randomly be either hero or their default type
+        // Videos with backgroundMusic: true will be used in the background music rotation
         const videos = [
-            { src: 'aura.mp4', type: 'portrait' },
+            { src: 'aura.mp4', type: 'portrait', backgroundMusic: true },
             { src: 'start.mp4', type: 'portrait' },
             { src: 'art.mp4', type: 'landscape', canBeHero: true },
-            { src: 'aura2.mp4', type: 'landscape', canBeHero: true },
-            { src: 'guy.mp4', type: 'portrait' },
+            { src: 'aura2.mp4', type: 'landscape', canBeHero: true, backgroundMusic: true },
+            { src: 'guy.mp4', type: 'portrait', backgroundMusic: true },
             { src: 'art2.mp4', type: 'landscape', canBeHero: true },
-            { src: 'donk.mp4', type: 'portrait' },
+            { src: 'donk.mp4', type: 'portrait', backgroundMusic: true },
             { src: 'art3.mp4', type: 'portrait' },
-            { src: 'aura3.mp4', type: 'portrait' }
+            { src: 'aura3.mp4', type: 'portrait', backgroundMusic: true }
         ];
 
-        // Background audio element
+        // Background audio element and playlist
         let backgroundAudio = null;
         let currentPlayingVideo = null;
+        let musicPlaylist = [];
+        let currentMusicIndex = 0;
 
         // Enter Button
         const enterBtn = document.getElementById('enterBtn');
@@ -418,11 +430,74 @@
         const mainContent = document.getElementById('mainContent');
         
         enterBtn.addEventListener('click', () => {
-            // Create background audio from the fifth video (guy.mp4)
-            backgroundAudio = new Audio(videos[4].src);
-            backgroundAudio.loop = true;
-            backgroundAudio.volume = 0.7;
-            backgroundAudio.play();
+            // Create playlist from videos marked for background music
+            musicPlaylist = videos.filter(v => v.backgroundMusic).map(v => v.src);
+            
+            // Shuffle the playlist
+            musicPlaylist = musicPlaylist.sort(() => Math.random() - 0.5);
+            
+            // Create background audio from the first song in playlist
+            if (musicPlaylist.length > 0) {
+                backgroundAudio = new Audio(musicPlaylist[0]);
+                backgroundAudio.volume = 0.7;
+                
+                // Crossfade function
+                function fadeToNext() {
+                    const fadeOutDuration = 2000; // 2 seconds fade out
+                    const fadeInDuration = 2000;  // 2 seconds fade in
+                    const fadeOutSteps = 20;
+                    const fadeInSteps = 20;
+                    let currentVolume = backgroundAudio.volume;
+                    
+                    // Fade out current song
+                    let fadeOutInterval = setInterval(() => {
+                        currentVolume -= (0.7 / fadeOutSteps);
+                        if (currentVolume <= 0) {
+                            currentVolume = 0;
+                            backgroundAudio.volume = currentVolume;
+                            clearInterval(fadeOutInterval);
+                            
+                            // Change to next song
+                            currentMusicIndex = (currentMusicIndex + 1) % musicPlaylist.length;
+                            backgroundAudio.src = musicPlaylist[currentMusicIndex];
+                            backgroundAudio.volume = 0;
+                            backgroundAudio.play();
+                            
+                            // Fade in new song
+                            let fadeInVolume = 0;
+                            let fadeInInterval = setInterval(() => {
+                                fadeInVolume += (0.7 / fadeInSteps);
+                                if (fadeInVolume >= 0.7) {
+                                    fadeInVolume = 0.7;
+                                    backgroundAudio.volume = fadeInVolume;
+                                    clearInterval(fadeInInterval);
+                                } else {
+                                    backgroundAudio.volume = fadeInVolume;
+                                }
+                            }, fadeInDuration / fadeInSteps);
+                        } else {
+                            backgroundAudio.volume = currentVolume;
+                        }
+                    }, fadeOutDuration / fadeOutSteps);
+                }
+                
+                // Start crossfade 3 seconds before song ends
+                backgroundAudio.addEventListener('timeupdate', function() {
+                    if (this.duration - this.currentTime <= 3) {
+                        this.removeEventListener('timeupdate', arguments.callee);
+                        fadeToNext();
+                    }
+                });
+                
+                // Also handle if song ends naturally (as backup)
+                backgroundAudio.addEventListener('ended', () => {
+                    currentMusicIndex = (currentMusicIndex + 1) % musicPlaylist.length;
+                    backgroundAudio.src = musicPlaylist[currentMusicIndex];
+                    backgroundAudio.play();
+                });
+                
+                backgroundAudio.play();
+            }
             
             landing.style.opacity = '0';
             setTimeout(() => {
@@ -464,9 +539,6 @@
                 
                 container.appendChild(video);
                 grid.appendChild(container);
-                
-                // Parallax depth
-                container.dataset.depth = Math.random() * 0.5 + 0.5;
             }
         }
         createVideoGrid();
@@ -558,36 +630,10 @@
 
         // Parallax Scroll Effect
         let scrollY = 0;
-        let scrollSpeed = 0;
         let lastScrollY = 0;
-        let scrollTimeout;
 
         window.addEventListener('scroll', () => {
             scrollY = window.scrollY;
-            scrollSpeed = Math.abs(scrollY - lastScrollY);
-            
-            // Parallax effect
-            document.querySelectorAll('.video-container').forEach(container => {
-                const depth = parseFloat(container.dataset.depth);
-                const movement = scrollY * depth * 0.1;
-                container.style.transform = `translateY(${movement}px)`;
-            });
-            
-            // Adjust video playback speed based on scroll speed
-            const playbackRate = 1 + (scrollSpeed * 0.01);
-            document.querySelectorAll('video').forEach(video => {
-                video.playbackRate = Math.min(playbackRate, 2);
-            });
-            
-            // Reset playback rate after scrolling stops
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                document.querySelectorAll('video').forEach(video => {
-                    video.playbackRate = 1;
-                });
-            }, 150);
-            
-            lastScrollY = scrollY;
             
             // Elastic bounce effect
             if (scrollY <= 0) {
@@ -599,6 +645,8 @@
                 document.body.classList.add('bounce-bottom');
                 setTimeout(() => document.body.classList.remove('bounce-bottom'), 200);
             }
+            
+            lastScrollY = scrollY;
         });
 
         // Infinite Scroll
@@ -625,8 +673,6 @@
                     
                     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#80ff00'];
                     container.style.setProperty('--glow-color', colors[Math.floor(Math.random() * colors.length)] + '40');
-                    
-                    container.dataset.depth = Math.random() * 0.5 + 0.5;
                     
                     container.appendChild(video);
                     document.getElementById('videoGrid').appendChild(container);
